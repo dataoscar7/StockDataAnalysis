@@ -1,0 +1,56 @@
+# Liberías necesarias para crear la descarga de datos
+import yfinance as yf
+aapl = yf.Ticker("AAPL")
+msft = yf.Ticker("MSFT")
+spy = yf.Ticker("SPY")
+
+aapl_data = aapl.history(start="2017-01-01", end="2022-12-30")
+msft_data = msft.history(start="2017-01-01", end="2022-12-30")
+spy_data = spy.history(start="2017-01-01", end="2022-12-30")
+
+# Liberías necesarias para crear la estrategia
+from backtesting import Strategy
+from backtesting.lib import crossover
+import pandas as pd
+import talib as ta
+from backtesting import Backtest
+import datetime
+
+# Creamos la estrategia
+class cruce_medias(Strategy):
+  
+    # Definimos la temporalidad de las medias
+    n1 = 9
+    n2 = 24
+
+    def init(self):
+        # Configuramos las dos medias
+        self.sma50 = self.I(ta.MA, self.data.Close, self.n1)
+        self.sma200 = self.I(ta.MA, self.data.Close, self.n2)
+
+    def next(self):
+        # Señal de compra --> MArápida cruza hacia arriba la MAlenta
+        if crossover(self.sma50, self.sma200):
+            self.position.close()
+            self.buy()
+
+        # Señal de venta --> MArápida cruza hacia abjao la MAlenta
+        elif crossover(self.sma200, self.sma50):
+            self.position.close()
+            self.sell()
+  
+bt_aapl = Backtest(aapl_data, cruce_medias, cash=10000, commission=.005, trade_on_close = False)
+bt_msft = Backtest(msft_data, cruce_medias, cash=10000, commission=.005, trade_on_close = False)
+bt_spy = Backtest(spy_data, cruce_medias, cash=10000, commission=.005, trade_on_close = False)
+
+stats_aapl = bt_aapl.run()
+stats_msft = bt_msft.run()
+stats_spy = bt_spy.run()
+
+# Resultados
+stats_aapl[4]-10000
+stats_msft[4]-10000
+stats_spy[4]-10000
+
+# Gráfico
+bt_aapl.plot()
