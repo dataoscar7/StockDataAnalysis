@@ -1,0 +1,66 @@
+import yfinance as yf
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+
+# Descargar datos de Apple
+df = yf.download("AAPL", start="2021-01-01", end="2023-03-07")
+
+# Seleccionar sólo el precio de cierre
+data = df[['Close']]
+
+# Crear una nueva columna con el precio del día siguiente
+data['NextDayClose'] = data['Close'].shift(-1)
+
+# Eliminar la última fila (ya que no tiene precio del día siguiente)
+data = data.dropna()
+
+# Separar características y objetivo
+X = data.drop('NextDayClose', axis='columns')
+y = data['NextDayClose']
+
+# Crear modelo de regresión lineal
+reg = LinearRegression().fit(X, y)
+
+# Dividir en conjuntos de entrenamiento y prueba
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Crear modelo de regresión lineal y ajustarlo al conjunto de entrenamiento
+reg = LinearRegression().fit(X_train, y_train)
+
+# Evaluar predicciones en el conjunto de prueba
+y_pred = reg.predict(X_test)
+
+# Calcular el error cuadrático medio y el coeficiente de determinación
+mse = np.mean((y_test - y_pred) ** 2)
+r2 = reg.score(X_test, y_test)
+
+print('Error cuadrático medio:', round(mse,2))
+print('Coeficiente de determinación:', round(r2,2))
+
+# Predecir precio de los siguientes 30 días
+last_day_price = data.iloc[-1]['Close']
+pred_prices = []
+for i in range(30):
+    next_day_price = reg.predict([[last_day_price]])[0]
+    pred_prices.append(next_day_price)
+    last_day_price = next_day_price
+
+# Graficar precios históricos de AAPL
+plt.figure(figsize=(10,5))
+plt.plot(data.index, data['Close'], label='Precio de cierre histórico de AAPL', linestyle='--')
+
+# Agregar la predicción a la gráfica
+last_date = data.index[-1]
+for i, price in enumerate(pred_prices):
+    next_date = last_date + pd.DateOffset(days=1)
+    plt.plot(next_date, price, marker='o', color='red')
+    last_date = next_date
+
+
+
+# Agregar etiqueta con el precio predicho para el día 30
+pred_price_day30 = round(pred_prices[-1],2)
+print(f'El precio predicho para dentro de 30 días es: {pred_price_day30:.2f}')
