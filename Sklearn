@@ -59,8 +59,6 @@ for i, price in enumerate(pred_prices):
     plt.plot(next_date, price, marker='o', color='red')
     last_date = next_date
 
-
-
-# Agregar etiqueta con el precio predicho para el día 30
+# Precio predicho
 pred_price_day30 = round(pred_prices[-1],2)
 print(f'El precio predicho para dentro de 30 días es: {pred_price_day30:.2f}')
